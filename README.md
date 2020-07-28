@@ -13,7 +13,7 @@ $ go get github.com/Intermernet
 
 To use:
 
-```console
+```
 package main
 
 import (
