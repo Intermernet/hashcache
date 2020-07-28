@@ -71,5 +71,5 @@ func main() {
 # Todo:
 
 - Tests!
-- Benchamrks
+- Benchmarks
 - A whole lot more
