@@ -1,4 +1,4 @@
-[![PkgGoDev](https://pkg.go.dev/badge/hashcache)](https://pkg.go.dev/hashcache)
+[![PkgGoDev](https://pkg.go.dev/badge/Intermernet/hashcache)](https://pkg.go.dev/Intermernet/hashcache)
 
 # hashcache
 
