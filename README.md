@@ -15,7 +15,7 @@ $ go get github.com/Intermernet/hashcache
 
 To use:
 
-```
+```go
 package main
 
 import (
