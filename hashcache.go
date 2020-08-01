@@ -1,3 +1,10 @@
+// hashcache is an experiment in creating a hash table / KV store from first principles.
+// It uses [SipHash](https://131002.net/siphash/) for hashing (which may be a terrible choice!)
+//
+// Copyright Mike Hughes 2020
+//
+// MIT License
+
 package hashcache
 
 import (
@@ -20,9 +27,9 @@ type node struct {
 }
 
 type endNode struct {
-	tail    *node
-	created uint64
-	value   *[]byte
+	tail     *node
+	accessed uint64
+	value    *[]byte
 }
 
 // Cache is a hash tree of keys which have been hashed using SipHash.
@@ -111,6 +118,7 @@ func (c *Cache) Read(key []byte) ([]byte, bool) {
 		currentNode = currentNode.children[currentByte]
 		hash = hash >> bitsPerNode
 	}
+	c.tails[currentNode].accessed = uint64(time.Now().UnixNano())
 	return *c.tails[currentNode].value, true
 }
 
@@ -128,7 +136,6 @@ func (c *Cache) Delete(key []byte) bool {
 		currentNode = currentNode.children[currentByte]
 		hash = hash >> bitsPerNode
 	}
-	delete(c.tails, currentNode)
 	c.deleteNode(currentNode)
 	return true
 }
@@ -191,6 +198,7 @@ func (c *Cache) deleteNode(n *node) {
 		n = n.parent
 		n.children = [1 << bitsPerNode]*node{}
 	}
+	delete(c.tails, n)
 }
 
 func (c *Cache) scavenge() {
@@ -200,8 +208,7 @@ func (c *Cache) scavenge() {
 			now := uint64(time.Now().UnixNano() / 1e6)
 			c.mu.Lock()
 			for n, e := range c.tails {
-				if now > (e.created/1e6)+c.ttl {
-					delete(c.tails, n)
+				if now > (e.accessed/1e6)+c.ttl {
 					c.deleteNode(n)
 				}
 			}
