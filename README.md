@@ -1,3 +1,5 @@
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/Intermernet/hashcache)](https://pkg.go.dev/github.com/Intermernet/hashcache)
+
 # hashcache
 
 hashcache is an experiment in creating a hash table / KV store from first principles.
@@ -8,12 +10,12 @@ To install:
 
 ```console
 
-$ go get github.com/Intermernet
+$ go get github.com/Intermernet/hashcache
 ```
 
 To use:
 
-```
+```go
 package main
 
 import (

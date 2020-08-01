@@ -148,7 +148,7 @@ func (c *Cache) Count() int {
 }
 
 // SetScavengeTime sets the frequency (in milliseconds) that the cache will check
-// for entries that are oldet than their TTL.
+// for entries that are older than their TTL.
 // It must be greater than 0 milliseconds, and less than or equal to the cache TTL.
 func (c *Cache) SetScavengeTime(st uint64) error {
 	if st == 0 {
