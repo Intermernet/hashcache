@@ -27,9 +27,10 @@ type node struct {
 }
 
 type endNode struct {
-	tail     *node
-	accessed uint64
-	value    *[]byte
+	tail         *node
+	accessed     uint64
+	key          []byte
+	valuePointer *[]byte
 }
 
 // Cache is a hash tree of keys which have been hashed using SipHash.
@@ -46,9 +47,10 @@ type Cache struct {
 	mu           *sync.RWMutex
 }
 
+// Row is a key, value pair representing a row in the cache.
 type Row struct {
-	key   []byte
-	value []byte
+	K []byte
+	V []byte
 }
 
 // NewCache will return a pointer to a newly instantiated Cache.
@@ -87,7 +89,7 @@ func NewCache(hashKey string) *Cache {
 // Write will add the key and value to the cache.
 // It will overwrite the key if it already exists.
 func (c *Cache) Write(r Row) {
-	hash := c.hash(r.key)
+	hash := c.hash(r.K)
 	currentNode := c.head
 	for i := 0; i < hashLen/bitsPerNode; i++ {
 		currentByte := hash & (hashLen/bitsPerNode - 1)
@@ -103,7 +105,7 @@ func (c *Cache) Write(r Row) {
 		hash = hash >> bitsPerNode
 	}
 	c.mu.Lock()
-	c.tails[currentNode] = &endNode{currentNode, uint64(time.Now().UnixNano()), &r.value}
+	c.tails[currentNode] = &endNode{currentNode, uint64(time.Now().UnixNano()), r.K, &r.V}
 	c.mu.Unlock()
 }
 
@@ -124,7 +126,7 @@ func (c *Cache) Read(key []byte) ([]byte, bool) {
 		hash = hash >> bitsPerNode
 	}
 	c.tails[currentNode].accessed = uint64(time.Now().UnixNano())
-	return *c.tails[currentNode].value, true
+	return *c.tails[currentNode].valuePointer, true
 }
 
 // Delete will remove an entry from the cache.
@@ -146,7 +148,19 @@ func (c *Cache) Delete(key []byte) bool {
 }
 
 // Iterate returns all keys and values in the cache.
-func (c *Cache) Iterate() {}
+func (c *Cache) Iterate() chan Row {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	rc := make(chan Row)
+
+	go func() {
+		for _, e := range c.tails {
+			r := Row{K: e.key, V: *e.valuePointer}
+			rc <- r
+		}
+	}()
+	return rc
+}
 
 // Count returns the number of keys in the cache.
 func (c *Cache) Count() int {
