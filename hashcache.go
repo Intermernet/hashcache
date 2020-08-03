@@ -146,7 +146,7 @@ func (c *Cache) Delete(key []byte) bool {
 }
 
 // Iterate returns all keys and values in the cache.
-func (c *Cache) Iterate()
+func (c *Cache) Iterate() {}
 
 // Count returns the number of keys in the cache.
 func (c *Cache) Count() int {
