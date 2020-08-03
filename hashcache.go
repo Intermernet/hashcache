@@ -46,6 +46,11 @@ type Cache struct {
 	mu           *sync.RWMutex
 }
 
+type Row struct {
+	key   []byte
+	value []byte
+}
+
 // NewCache will return a pointer to a newly instantiated Cache.
 // It requires a 128 bit hash key in string form to initialise.
 // If the key is longer or shorter than 128 bits it will be truncated
@@ -81,8 +86,8 @@ func NewCache(hashKey string) *Cache {
 
 // Write will add the key and value to the cache.
 // It will overwrite the key if it already exists.
-func (c *Cache) Write(key, value []byte) {
-	hash := c.hash(key)
+func (c *Cache) Write(r Row) {
+	hash := c.hash(r.key)
 	currentNode := c.head
 	for i := 0; i < hashLen/bitsPerNode; i++ {
 		currentByte := hash & (hashLen/bitsPerNode - 1)
@@ -98,7 +103,7 @@ func (c *Cache) Write(key, value []byte) {
 		hash = hash >> bitsPerNode
 	}
 	c.mu.Lock()
-	c.tails[currentNode] = &endNode{currentNode, uint64(time.Now().UnixNano()), &value}
+	c.tails[currentNode] = &endNode{currentNode, uint64(time.Now().UnixNano()), &r.value}
 	c.mu.Unlock()
 }
 
@@ -139,6 +144,9 @@ func (c *Cache) Delete(key []byte) bool {
 	c.deleteNode(currentNode)
 	return true
 }
+
+// Iterate returns all keys and values in the cache.
+func (c *Cache) Iterate()
 
 // Count returns the number of keys in the cache.
 func (c *Cache) Count() int {
