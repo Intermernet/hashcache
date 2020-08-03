@@ -148,13 +148,13 @@ func (c *Cache) Delete(key []byte) bool {
 }
 
 // Iterate returns all keys and values in the cache.
-func (c *Cache) Iterate() chan Row {
+func (c *Cache) Iterate() []Row {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	rc := make(chan Row, len(c.tails))
+	rc := make([]Row, 0)
 	for _, e := range c.tails {
 		r := Row{K: e.key, V: *e.valuePointer}
-		rc <- r
+		rc = append(rc, r)
 	}
 	return rc
 }
