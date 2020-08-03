@@ -151,13 +151,13 @@ func (c *Cache) Delete(key []byte) bool {
 func (c *Cache) Iterate() chan Row {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	rc := make(chan Row)
+	rc := make(chan Row, len(c.tails))
 
 	go func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
 		for _, e := range c.tails {
-			c.mu.Lock()
 			r := Row{K: e.key, V: *e.valuePointer}
-			c.mu.Unlock()
 			rc <- r
 		}
 	}()
