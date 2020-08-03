@@ -155,7 +155,9 @@ func (c *Cache) Iterate() chan Row {
 
 	go func() {
 		for _, e := range c.tails {
+			c.mu.Lock()
 			r := Row{K: e.key, V: *e.valuePointer}
+			c.mu.Unlock()
 			rc <- r
 		}
 	}()
