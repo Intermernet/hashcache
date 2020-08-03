@@ -152,15 +152,10 @@ func (c *Cache) Iterate() chan Row {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	rc := make(chan Row, len(c.tails))
-
-	go func() {
-		c.mu.Lock()
-		defer c.mu.Unlock()
-		for _, e := range c.tails {
-			r := Row{K: e.key, V: *e.valuePointer}
-			rc <- r
-		}
-	}()
+	for _, e := range c.tails {
+		r := Row{K: e.key, V: *e.valuePointer}
+		rc <- r
+	}
 	return rc
 }
 
