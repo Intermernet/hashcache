@@ -49,7 +49,7 @@ func main() {
 	}
 	// Add some data
 	for _, kv := range kvs {
-		c.Write(kv.key, kv.value)
+		c.Write(hashcache.Row{kv.key, kv.value})
 	}
 	// Read some data
 	for _, kv := range kvs {
