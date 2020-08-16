@@ -9,6 +9,7 @@ package hashcache
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -19,6 +20,13 @@ import (
 const (
 	hashLen     = 64 // SipHash length
 	bitsPerNode = 4  // Can be 4, 8 or 16. Needs benchmarking.
+)
+
+var (
+	// ErrNoRows means that the cache is empty
+	ErrNoRows = errors.New("no rows found in cache")
+	// ErrLastRow means that the current iterator row is the last row in the cache
+	ErrLastRow = errors.New("no morerows found in cache")
 )
 
 type node struct {
@@ -110,7 +118,7 @@ func (i *Iterator) Value() (Row, error) {
 	if i.current != nil {
 		return Row{K: i.current.key, V: *i.current.valuePointer}, nil
 	}
-	return Row{}, fmt.Errorf("no rows found in cache")
+	return Row{}, ErrNoRows
 }
 
 // Next sets the Iterator to the next value in the cache,
@@ -122,7 +130,7 @@ func (i *Iterator) Next() error {
 		i.current = i.current.next
 		return nil
 	}
-	return fmt.Errorf("no more rows in cache")
+	return ErrLastRow
 }
 
 // Write will add the key and value to the cache.
