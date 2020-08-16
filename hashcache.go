@@ -26,11 +26,13 @@ type node struct {
 	children [1 << bitsPerNode]*node
 }
 
-type endNode struct {
+type leaf struct {
 	tail         *node
 	accessed     uint64
 	key          []byte
 	valuePointer *[]byte
+	prev         *leaf
+	next         *leaf
 }
 
 // Cache is a hash tree of keys which have been hashed using SipHash.
@@ -40,7 +42,7 @@ type Cache struct {
 	hkey0        uint64
 	hkey1        uint64
 	head         *node
-	tails        map[*node]*endNode
+	tails        map[*node]*leaf
 	ttl          uint64 // milliseconds
 	scavengeTime uint64 // milliseconds
 	timer        *time.Timer
@@ -76,7 +78,7 @@ func NewCache(hashKey string) *Cache {
 			parent:   nil,
 			children: [1 << bitsPerNode]*node{},
 		},
-		tails:        map[*node]*endNode{},
+		tails:        map[*node]*leaf{},
 		ttl:          10000,
 		scavengeTime: 1000,
 		mu:           &sync.RWMutex{},
@@ -105,7 +107,18 @@ func (c *Cache) Write(r Row) {
 		hash = hash >> bitsPerNode
 	}
 	c.mu.Lock()
-	c.tails[currentNode] = &endNode{currentNode, uint64(time.Now().UnixNano()), r.K, &r.V}
+	c.tails[currentNode] = &leaf{
+		tail:         currentNode,
+		accessed:     uint64(time.Now().UnixNano()),
+		key:          r.K,
+		valuePointer: &r.V,
+	}
+	prev := c.getRandomLeaf()
+	if prev != nil {
+		c.tails[currentNode].prev = prev
+		c.tails[currentNode].next = prev.next
+		prev.next = c.tails[currentNode]
+	}
 	c.mu.Unlock()
 }
 
@@ -213,6 +226,14 @@ func checkParent(n *node) bool {
 }
 
 func (c *Cache) deleteNode(n *node) {
+	switch {
+	case c.tails[n].prev != nil && c.tails[n].next != nil:
+		c.tails[n].prev.next = c.tails[n].next
+	case c.tails[n].prev == nil:
+		c.tails[n].next.prev = nil
+	case c.tails[n].next == nil:
+		c.tails[n].prev.next = nil
+	}
 	for checkParent(n) {
 		n = n.parent
 		n.children = [1 << bitsPerNode]*node{}
@@ -235,4 +256,11 @@ func (c *Cache) scavenge() {
 			c.mu.Unlock()
 		}
 	}
+}
+
+func (c *Cache) getRandomLeaf() *leaf {
+	for _, v := range c.tails {
+		return v
+	}
+	return nil
 }
