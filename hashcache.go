@@ -105,6 +105,8 @@ func NewIterator(c *Cache) *Iterator {
 // Value returns the value of the current Row in the Iterator,
 // or an error if the cache is empty.
 func (i *Iterator) Value() (Row, error) {
+	i.cache.mu.RLock()
+	defer i.cache.mu.RUnlock()
 	if i.current != nil {
 		return Row{K: i.current.key, V: *i.current.valuePointer}, nil
 	}
@@ -114,6 +116,8 @@ func (i *Iterator) Value() (Row, error) {
 // Next sets the Iterator to the next value in the cache,
 // or returns an error if the last value has been reached.
 func (i *Iterator) Next() error {
+	i.cache.mu.Lock()
+	defer i.cache.mu.Unlock()
 	if i.current.next != nil {
 		i.current = i.current.next
 		return nil
