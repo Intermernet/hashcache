@@ -242,6 +242,7 @@ func (c *Cache) deleteNode(n *node) {
 		n.children = [1 << bitsPerNode]*node{}
 		//n.children = nil
 	}
+	c.tails[n].valuePointer = nil
 	delete(c.tails, n)
 }
 
