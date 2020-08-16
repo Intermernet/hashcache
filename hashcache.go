@@ -22,9 +22,9 @@ const (
 )
 
 type node struct {
-	parent *node
-	//children [1 << bitsPerNode]*node
-	children []*node
+	parent   *node
+	children *[1 << bitsPerNode]*node
+	//children []*node
 }
 
 type leaf struct {
@@ -76,9 +76,9 @@ func NewCache(hashKey string) *Cache {
 		hkey0: binary.LittleEndian.Uint64(hKeyBytes[:8]),
 		hkey1: binary.LittleEndian.Uint64(hKeyBytes[8:]),
 		head: &node{
-			parent: nil,
-			//children: [1 << bitsPerNode]*node{},
-			children: make([]*node, 1<<bitsPerNode),
+			parent:   nil,
+			children: &[1 << bitsPerNode]*node{},
+			//children: make([]*node, 1<<bitsPerNode),
 		},
 		tails:        map[*node]*leaf{},
 		ttl:          10000,
@@ -100,9 +100,9 @@ func (c *Cache) Write(r Row) {
 		if currentNode.children[currentByte] == nil {
 			c.mu.Lock()
 			currentNode.children[currentByte] = &node{
-				parent: currentNode,
-				//children: [1 << bitsPerNode]*node{},
-				children: make([]*node, 1<<bitsPerNode),
+				parent:   currentNode,
+				children: &[1 << bitsPerNode]*node{},
+				//children: make([]*node, 1<<bitsPerNode),
 			}
 			c.mu.Unlock()
 		}
