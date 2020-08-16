@@ -118,7 +118,7 @@ func (i *Iterator) Value() (Row, error) {
 func (i *Iterator) Next() error {
 	i.cache.mu.Lock()
 	defer i.cache.mu.Unlock()
-	if i.current.next != nil && i.current != nil {
+	if i.current != nil && i.current.next != nil {
 		i.current = i.current.next
 		return nil
 	}
