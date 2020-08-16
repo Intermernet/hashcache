@@ -44,10 +44,17 @@ type Cache struct {
 	hkey1        uint64
 	head         *node
 	tails        map[*node]*leaf
+	start        *leaf
 	ttl          uint64 // milliseconds
 	scavengeTime uint64 // milliseconds
 	timer        *time.Timer
 	mu           *sync.RWMutex
+}
+
+// Iterator is used to iterate over all values in the Cache
+type Iterator struct {
+	cache   *Cache
+	current *leaf
 }
 
 // Row is a key, value pair representing a row in the cache.
@@ -90,6 +97,30 @@ func NewCache(hashKey string) *Cache {
 	return c
 }
 
+// NewIterator return an Iterator.
+func NewIterator(c *Cache) *Iterator {
+	return &Iterator{cache: c, current: c.start}
+}
+
+// Value returns the value of the current Row in the Iterator,
+// or an error if the cache is empty.
+func (i *Iterator) Value() (Row, error) {
+	if i.current != nil {
+		return Row{K: i.current.key, V: *i.current.valuePointer}, nil
+	}
+	return Row{}, fmt.Errorf("no rows found in cache")
+}
+
+// Next sets the Iterator to the next value in the cache,
+// or returns an error if the last value has been reached.
+func (i *Iterator) Next() error {
+	if i.current.next != nil {
+		i.current = i.current.next
+		return nil
+	}
+	return fmt.Errorf("no more rows in cache")
+}
+
 // Write will add the key and value to the cache.
 // It will overwrite the key if it already exists.
 func (c *Cache) Write(r Row) {
@@ -121,6 +152,9 @@ func (c *Cache) Write(r Row) {
 		c.tails[currentNode].prev = prev
 		c.tails[currentNode].next = prev.next
 		prev.next = c.tails[currentNode]
+	}
+	if len(c.tails) == 0 {
+		c.start = c.tails[currentNode]
 	}
 	c.mu.Unlock()
 }
@@ -161,18 +195,6 @@ func (c *Cache) Delete(key []byte) bool {
 	}
 	c.deleteNode(currentNode)
 	return true
-}
-
-// Iterate returns all keys and values in the cache.
-func (c *Cache) Iterate() []Row {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	rc := make([]Row, 0)
-	for _, e := range c.tails {
-		r := Row{K: e.key, V: *e.valuePointer}
-		rc = append(rc, r)
-	}
-	return rc
 }
 
 // Count returns the number of keys in the cache.
@@ -229,7 +251,15 @@ func checkParent(n *node) bool {
 }
 
 func (c *Cache) deleteNode(n *node) {
-	c.tails[n].valuePointer = nil
+	c.tails[n].valuePointer = nil // TODO: check if this is necessary
+	if c.tails[n] == c.start {
+		switch {
+		case c.tails[n].next != nil:
+			c.start = c.tails[n].next
+		case c.tails[n].next == nil:
+			c.start = nil
+		}
+	}
 	switch {
 	case c.tails[n].prev != nil && c.tails[n].next != nil:
 		c.tails[n].prev.next = c.tails[n].next
