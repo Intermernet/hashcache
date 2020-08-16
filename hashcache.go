@@ -229,6 +229,7 @@ func checkParent(n *node) bool {
 }
 
 func (c *Cache) deleteNode(n *node) {
+	c.tails[n].valuePointer = nil
 	switch {
 	case c.tails[n].prev != nil && c.tails[n].next != nil:
 		c.tails[n].prev.next = c.tails[n].next
@@ -242,7 +243,6 @@ func (c *Cache) deleteNode(n *node) {
 		n.children = [1 << bitsPerNode]*node{}
 		//n.children = nil
 	}
-	c.tails[n].valuePointer = nil
 	delete(c.tails, n)
 }
 
