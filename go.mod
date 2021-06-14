@@ -1,4 +1,4 @@
-module github.com/Intermernet/hashcache
+module github.com/intermernet/hashcache
 
 go 1.14
 

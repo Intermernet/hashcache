@@ -1,21 +1,3 @@
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/intermernet/hashcache)](https://pkg.go.dev/github.com/intermernet/hashcache)
-
-# hashcache
-
-hashcache is an experiment in creating a hash table / KV store from first principles.
-
-It uses [SipHash](https://131002.net/siphash/) for hashing (which may be a terrible choice!)
-
-To install:
-
-```console
-
-$ go get github.com/intermernet/hashcache
-```
-
-To use:
-
-```go
 package main
 
 import (
@@ -68,10 +50,3 @@ func main() {
 	}
 
 }
-```
-
-# Todo:
-
-- Tests!
-- Benchmarks
-- A whole lot more

@@ -26,13 +26,13 @@ var (
 	// ErrNoRows means that the cache is empty
 	ErrNoRows = errors.New("no rows found in cache")
 	// ErrLastRow means that the current iterator row is the last row in the cache
-	ErrLastRow = errors.New("no morerows found in cache")
+	ErrLastRow = errors.New("no more rows found in cache")
 )
 
 type node struct {
-	parent   *node
-	children [1 << bitsPerNode]*node
-	//children []*node
+	parent *node
+	//children [1 << bitsPerNode]*node
+	children []*node
 }
 
 type leaf struct {
@@ -91,9 +91,9 @@ func NewCache(hashKey string) *Cache {
 		hkey0: binary.LittleEndian.Uint64(hKeyBytes[:8]),
 		hkey1: binary.LittleEndian.Uint64(hKeyBytes[8:]),
 		head: &node{
-			parent:   nil,
-			children: [1 << bitsPerNode]*node{},
-			//children: make([]*node, 1<<bitsPerNode),
+			parent: nil,
+			//children: [1 << bitsPerNode]*node{},
+			children: make([]*node, 1<<bitsPerNode),
 		},
 		tails:        map[*node]*leaf{},
 		ttl:          10000,
@@ -143,9 +143,9 @@ func (c *Cache) Write(r Row) {
 		if currentNode.children[currentByte] == nil {
 			c.mu.Lock()
 			currentNode.children[currentByte] = &node{
-				parent:   currentNode,
-				children: [1 << bitsPerNode]*node{},
-				//children: make([]*node, 1<<bitsPerNode),
+				parent: currentNode,
+				//children: [1 << bitsPerNode]*node{},
+				children: make([]*node, 1<<bitsPerNode),
 			}
 			c.mu.Unlock()
 		}
@@ -282,26 +282,23 @@ func (c *Cache) deleteNode(n *node) {
 	}
 	for checkParent(n) {
 		n = n.parent
-		n.children = [1 << bitsPerNode]*node{}
-		//n.children = nil
+		//n.children = [1 << bitsPerNode]*node{}
+		n.children = nil
 	}
 	delete(c.tails, n)
 }
 
 func (c *Cache) scavenge() {
-	for {
-		select {
-		case <-c.timer.C:
-			now := uint64(time.Now().UnixNano() / 1e6)
-			c.mu.Lock()
-			for n, e := range c.tails {
-				if now > (e.accessed/1e6)+c.ttl {
-					c.deleteNode(n)
-				}
+	for t := range c.timer.C {
+		now := uint64(t.UnixNano() / 1e6)
+		c.mu.Lock()
+		for n, e := range c.tails {
+			if now > (e.accessed/1e6)+c.ttl {
+				c.deleteNode(n)
 			}
-			c.timer.Reset(time.Duration(c.scavengeTime) * time.Millisecond)
-			c.mu.Unlock()
 		}
+		c.timer.Reset(time.Duration(c.scavengeTime) * time.Millisecond)
+		c.mu.Unlock()
 	}
 }
 
